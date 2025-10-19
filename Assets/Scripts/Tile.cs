@@ -7,7 +7,8 @@ using static Define;
 [Serializable]
 public class Tile : MonoBehaviour
 {
-    public Point point;
+    public int x;
+    public int y;
     public TileType type;
     
     [SerializeField]
@@ -17,20 +18,25 @@ public class Tile : MonoBehaviour
     [SerializeField]
     private GameObject objCrush = null;
 
+    public GameObject objTile = null;
+
     private bool isSelectTile = false;
     private Coroutine coMove = null;
+    private bool isMoving = false;
 
-    public Tile(Point point, TileType type)
+    public Tile(int x, int y, TileType type)
     {
-        this.point = point;
+        this.x = x;
+        this.y = y;
         this.type = type;
 
         objCrush.SetActive(false);
     }
 
-    public void Set(Point point, TileType type)
+    public void Set(int x, int y, TileType type)
     {
-        this.point = point;
+        this.x = x;
+        this.y = y;
         this.type = type;
 
         spriteRenderer.sprite = SpriteManager.Instance.Get(type.GetImage());
@@ -38,27 +44,22 @@ public class Tile : MonoBehaviour
         //isSelectTile = false;
     }
 
-    public void ChangeTile()
-    {
-        this.spriteRenderer.sprite = SpriteManager.Instance.Get(type.GetImage());
-    }
-
     public void ClearTile()
     {
         objImage.SetActive(false);
         objCrush.SetActive(true);
 
-        StartCoroutine(EndCrush());
+        //StartCoroutine(EndCrush());
     }
 
-    private IEnumerator EndCrush()
-    {
-        yield return new WaitForSeconds(0.4f);
+    //private IEnumerator EndCrush()
+    //{
+    //    yield return new WaitForSeconds(0.4f);
 
-        GameObject.Destroy(this.gameObject);
-    }
+    //    GameObject.Destroy(this.gameObject);
+    //}
 
-    public void Move(Point point, Vector3 dest)
+    public void Move(int x, int y, Vector3 dest)
     {
         if (coMove != null)
         {
@@ -66,15 +67,28 @@ public class Tile : MonoBehaviour
             coMove = null;
         }
 
-        this.point = point;
-        coMove = StartCoroutine(MoveCoroutine(dest, 0.1f));
+        this.x = x;
+        this.y = y;
+
+        if (!isMoving)
+        {
+            elapsedTime = 0;
+            movingTime = 0.2f;
+        }
+        else
+            movingTime += 0.2f;
+
+        coMove = StartCoroutine(MoveCoroutine(dest, movingTime));
     }
+
+    private float elapsedTime = 0;
+    private float movingTime = 0.2f;
 
     private IEnumerator MoveCoroutine(Vector3 dest, float time)
     {
+        isMoving = true;
         Vector3 startPos = transform.position;
 
-        float elapsedTime = 0;
         while (elapsedTime <= time)
         {
             elapsedTime += Time.deltaTime;
@@ -84,6 +98,7 @@ public class Tile : MonoBehaviour
 
         transform.position = dest;
         coMove = null;
+        isMoving = false;
     }
 
     private void OnMouseDown()
