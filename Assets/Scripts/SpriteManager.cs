@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 using UnityEngine.U2D;
 
 public class SpriteManager : MonoBehaviour
@@ -22,8 +23,33 @@ public class SpriteManager : MonoBehaviour
         spriteAtlas = Resources.Load<SpriteAtlas>("Atlas/TileAtlas");
     }
 
-    public Sprite Get(string name)
+    private Dictionary<string, Sprite> spriteCache = new Dictionary<string, Sprite>();
+
+    public Sprite GetSprite(string name)
     {
-        return spriteAtlas.GetSprite(name);
+        if (spriteCache.TryGetValue(name, out Sprite sprite) && sprite != null)
+        {
+            return sprite;
+        }
+
+        var res = spriteAtlas.GetSprite(name);
+        spriteCache[name] = res;
+
+        return res;
+    }
+
+    private Dictionary<string, Texture> textureCache = new Dictionary<string, Texture>();
+
+    public Texture GetTexture(string name)
+    {
+        if (textureCache.TryGetValue(name, out Texture texture) && texture != null)
+        {
+            return texture;
+        }
+
+        var res = Resources.Load<Texture>(name);
+        textureCache[name] = res;
+
+        return res;
     }
 }

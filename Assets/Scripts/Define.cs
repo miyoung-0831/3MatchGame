@@ -11,7 +11,9 @@ public class Define
         Purple,
         Red,
         Yellow,
-        Max
+        ColorMax,
+        TopSpin,
+        None,
     }
 
     public enum Dir

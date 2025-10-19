@@ -19,7 +19,7 @@ public class Board : MonoBehaviour
     [Header("레벨 데이터")]
     [SerializeField] private LevelData levelData = null;
 
-    private float tileSize = 1f;
+    private float tileSize = 0.9f;
 
     private Dictionary<(int, int), Tile> board = new Dictionary<(int, int), Tile>();
 
@@ -34,6 +34,7 @@ public class Board : MonoBehaviour
     {
         board.Clear();
 
+        // 배경 타일 생성
         for (int y = 0; y < height; y++)
         {
             for (int x = 0; x < width; x++)
@@ -48,7 +49,29 @@ public class Board : MonoBehaviour
             }
         }
 
-        GenerateBoardWithoutMatches();
+        // 레벨 데이터로 보드 생성
+        var levelTiles = levelData.GetData();
+        foreach (var tileInfo in levelTiles)
+        {
+            var (x, y) = tileInfo.Key;
+
+            if (InRhombus(x, y) == false)
+                continue;
+
+            var type = tileInfo.Value;
+
+            Vector3 pos = TileToWorld(x, y);
+            var tileObject = Instantiate(goTile, pos, Quaternion.identity, trTile);
+            tileObject.name = $"Tile_{type}";
+
+            var tile = tileObject.GetComponent<Tile>();
+            tile.Set(x, y, type, tileObject);
+
+            board[(x, y)] = tile;
+        }
+
+        // 랜덤 생성 
+        //GenerateBoardWithoutMatches();
     }
 
     private Vector3 TileToWorld(int x, int y)
@@ -57,7 +80,7 @@ public class Board : MonoBehaviour
         var newY = (Math.Sqrt(3) / 2 * x + Math.Sqrt(3) * y);
         newX = newX * (tileSize / 2f);
         newY = newY * ((tileSize * 0.93f) / Math.Sqrt(3));
-        return new Vector3(newX, (float)newY) + new Vector3(-2.3f, -3f);
+        return new Vector3(newX, (float)newY) + new Vector3(-2f, -3f);
     }
 
     private bool InRhombus(int x, int y)
@@ -92,8 +115,7 @@ public class Board : MonoBehaviour
             tileObject.name = $"Tile_{x}_{y}";
 
             var tile = tileObject.GetComponent<Tile>();
-            tile.objTile = tileObject;
-            tile.Set(x, y, type);
+            tile.Set(x, y, type, tileObject);
 
             board[(x, y)] = tile;
         }
@@ -101,7 +123,7 @@ public class Board : MonoBehaviour
 
     private TileType GetRandomTileType()
     {
-        return (TileType) UnityEngine.Random.Range(0, (int)TileType.Max);
+        return (TileType) UnityEngine.Random.Range(0, (int)TileType.ColorMax);
     }
 
     private bool IsNeighborMatch(int x, int y, TileType type)
@@ -153,6 +175,14 @@ public class Board : MonoBehaviour
         return true;
     }
 
+    private bool IsLockTile(int x, int y)
+    {
+        if (IsEmptyTile(x, y))
+            return false;
+
+        return board[(x, y)].IsLock;
+    }
+
     // 타일 스왑
     public void SwapTile(Tile tileA, Tile tileB, int dx, int dy)
     {
@@ -180,8 +210,6 @@ public class Board : MonoBehaviour
         if (matches.Count > 0)
         {
             Debug.Log($"Match !! {matches.Count}");
-            //RemoveTiles(matches);
-            //RefillTile(matches);
             StartCoroutine(ClearTile(matches));
         }
         else
@@ -218,10 +246,10 @@ public class Board : MonoBehaviour
                 int dx = tile.x + dir.Item1;
                 int dy = tile.y + dir.Item2;
 
-                if (IsSameTile(dx, dy, tile.type)) // 라인 체크하면서 dx, dy 값이 변경되어 4매치 먼저 체크
+                if (!IsLockTile(dx, dy) && IsSameTile(dx, dy, tile.type)) // 라인 체크하면서 dx, dy 값이 변경되어 4매치 먼저 체크
                     match4.Add(board[(dx, dy)]);
 
-                while (board.TryGetValue((dx, dy), out var dTile) && dTile.type == tile.type)
+                while (board.TryGetValue((dx, dy), out var dTile) && !dTile.IsLock && dTile.type == tile.type)
                 { 
                     line.Add(dTile);
                     dx += dir.Item1;
@@ -232,10 +260,10 @@ public class Board : MonoBehaviour
                 dx = tile.x - dir.Item1;
                 dy = tile.y - dir.Item2;
 
-                if (IsSameTile(dx, dy, tile.type))
+                if (!IsLockTile(dx, dy) && IsSameTile(dx, dy, tile.type))
                     match4.Add(board[(dx, dy)]);
 
-                while (board.TryGetValue((dx, dy), out var dTile) && dTile.type == tile.type)
+                while (board.TryGetValue((dx, dy), out var dTile) && !dTile.IsLock && dTile.type == tile.type)
                 {
                     line.Add(dTile);
                     dx -= dir.Item1;
@@ -262,17 +290,36 @@ public class Board : MonoBehaviour
     // 매치된 타일 제거
     IEnumerator ClearTile(List<Tile> matches)
     {
+        HashSet<(int, int)> unlockTiles = new HashSet<(int, int)>();
+
         foreach (var match in matches)
         {
             match.ClearTile();
             board[(match.x, match.y)] = null;
+
+            foreach (var dir in Define.Directions)
+            {
+                var (dx, dy) = dir;
+                var x = match.x + dx;
+                var y = match.y + dy;
+
+                if (IsLockTile(x, y))
+                    unlockTiles.Add((x, y));
+            }
+        }
+
+        foreach (var pos in unlockTiles)
+        {
+            var (x, y) = pos;
+            var tile = board[(x, y)];
+            tile.UnlockTopSpin();
         }
 
         yield return new WaitForSeconds(0.5f);
 
         foreach (var match in matches)
         {
-            GameObject.DestroyImmediate(match.objTile);
+            GameObject.DestroyImmediate(match.TileObject);
         }
 
         StartCoroutine(FillTile());
@@ -384,12 +431,13 @@ public class Board : MonoBehaviour
         Vector3 pos = TileToWorld(x, y);
         var tileObject = Instantiate(goTile, pos, Quaternion.identity, trTile);
         tileObject.name = $"Tile_{x}_{y}";
+
         var tile = tileObject.GetComponent<Tile>();
-        tile.Set(x, y, type);
-        tile.objTile = tileObject;
+        tile.Set(x, y, type, tileObject);
 
         var destPos = TileToWorld(x, y - 1);
         tile.Move(x, y - 1, destPos);
+
         board[(x, y - 1)] = tile;
     }
 

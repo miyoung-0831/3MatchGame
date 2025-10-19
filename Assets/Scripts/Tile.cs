@@ -17,12 +17,19 @@ public class Tile : MonoBehaviour
     private GameObject objImage = null;
     [SerializeField]
     private GameObject objCrush = null;
+    [SerializeField]
+    private Animator topSpinAni = null;
 
-    public GameObject objTile = null;
+    public GameObject TileObject => objTile;
+    private GameObject objTile = null;
 
     private bool isSelectTile = false;
+
     private Coroutine coMove = null;
     private bool isMoving = false;
+
+    public bool IsLock => isLock;
+    private bool isLock = false;
 
     public Tile(int x, int y, TileType type)
     {
@@ -33,32 +40,33 @@ public class Tile : MonoBehaviour
         objCrush.SetActive(false);
     }
 
-    public void Set(int x, int y, TileType type)
+    public void Set(int x, int y, TileType type, GameObject obj)
     {
         this.x = x;
         this.y = y;
         this.type = type;
+        this.objTile = obj;
 
-        spriteRenderer.sprite = SpriteManager.Instance.Get(type.GetImage());
+        spriteRenderer.sprite = SpriteManager.Instance.GetSprite(type.GetImage());
         objImage.SetActive(true);
+
+        if (type == TileType.TopSpin)
+            isLock = true;
+        else
+            isLock = false;
+
         //isSelectTile = false;
     }
 
     public void ClearTile()
     {
+        ChangeParticleTexture();
+
         objImage.SetActive(false);
         objCrush.SetActive(true);
-
-        //StartCoroutine(EndCrush());
     }
 
-    //private IEnumerator EndCrush()
-    //{
-    //    yield return new WaitForSeconds(0.4f);
-
-    //    GameObject.Destroy(this.gameObject);
-    //}
-
+    // 목적지까지 이동
     public void Move(int x, int y, Vector3 dest)
     {
         if (coMove != null)
@@ -76,7 +84,7 @@ public class Tile : MonoBehaviour
             movingTime = 0.2f;
         }
         else
-            movingTime += 0.2f;
+            movingTime += 0.2f; // 우선 이동중이면 시간 누적
 
         coMove = StartCoroutine(MoveCoroutine(dest, movingTime));
     }
@@ -99,6 +107,23 @@ public class Tile : MonoBehaviour
         transform.position = dest;
         coMove = null;
         isMoving = false;
+    }
+
+    // 팽이 잠금 해제 (팽이 돌아가는 애니메이션 재생)
+    public void UnlockTopSpin()
+    {
+        if (type != TileType.TopSpin)
+            return;
+
+        isLock = false;
+        topSpinAni.enabled = true;
+    }
+
+    [SerializeField] private Material particleMat;
+
+    private void ChangeParticleTexture()
+    {
+        particleMat.mainTexture = SpriteManager.Instance.GetTexture(type.GetParticleTexture());
     }
 
     private void OnMouseDown()

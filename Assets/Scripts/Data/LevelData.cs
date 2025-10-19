@@ -19,18 +19,18 @@ public class LevelData : ScriptableObject
 
     //TODO : 컬럼수 체크해서 에러 나오도록하는게 좋을 듯 n * m 으로 데이터가 만들어지도록
 
-    public (int, int, Dictionary<(int, int), TileType>) GetData()
+    public Dictionary<(int, int), TileType> GetData()
     {
-        Dictionary<(int, int), TileType> boardData = new Dictionary<(int, int), TileType>();
+        var data = new Dictionary<(int, int), TileType>();
 
         for (var i = 0; i < rows.Count; i++)
         {
             for (var j = 0; j < rows[i].tiles.Count; j++)
             {
-                boardData.Add((j, -i), rows[i].tiles[j]); // y 좌표 반대로 뒤집어 준다.
+                data[(j, i)] = rows[i].tiles[j];
             }
         }
 
-        return (rows[0].tiles.Count, rows.Count, boardData);
+        return data;
     }
 }
