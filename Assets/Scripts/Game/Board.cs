@@ -59,14 +59,6 @@ public class Board : MonoBehaviour
 
             var type = blockInfo.Value;
             board[(x, y)] = GenerateBlock(x, y, type);
-            //Vector3 pos = BlockToWorld(x, y);
-            //var blockObject = BlockPool.Instance.GetBlock(goBlock);// Instantiate(goBlock, pos, Quaternion.identity, trBlock);
-            //blockObject.name = $"Block_{type}";
-
-            //var block = blockObject.GetComponent<Block>();
-            //block.Set(x, y, type, blockObject);
-
-            //board[(x, y)] = block;
         }
 
         // ·£´ý »ý¼º 
@@ -76,9 +68,10 @@ public class Board : MonoBehaviour
     private Block GenerateBlock(int x, int y, BlockType type)
     {
         Vector3 pos = BlockToWorld(x, y);
-        var blockObject = BlockPool.Instance.GetBlock();// Instantiate(goBlock, pos, Quaternion.identity, trBlock);
+        var blockObject = BlockPool.Instance.GetBlock();
         blockObject.transform.SetParent(trBlock);
         blockObject.transform.position = pos;
+        blockObject.transform.localScale = Vector3.one;
         blockObject.name = $"Block_{type}";
 
         var block = blockObject.GetComponent<Block>();
@@ -124,15 +117,6 @@ public class Board : MonoBehaviour
             while (IsNeighborMatch(x, y, type));
 
             board[(x, y)] = GenerateBlock(x, y, type);
-
-            //Vector3 pos = BlockToWorld(x, y);
-            //var blockObject = Instantiate(goBlock, pos, Quaternion.identity, trBlock);
-            //blockObject.name = $"Block_{x}_{y}";
-
-            //var block = blockObject.GetComponent<Block>();
-            //block.Set(x, y, type, blockObject);
-
-            //board[(x, y)] = block;
         }
     }
 
@@ -334,7 +318,6 @@ public class Board : MonoBehaviour
 
         foreach (var match in matches)
         {
-            //GameObject.DestroyImmediate(match.BlockObject);
             BlockPool.Instance.ReturnBlock(match.BlockObject);
         }
 
@@ -445,12 +428,6 @@ public class Board : MonoBehaviour
 
         var type = GetRandomBlockType();
         var block = GenerateBlock(x, y, type);
-        //Vector3 pos = BlockToWorld(x, y);
-        //var blockObject = Instantiate(goBlock, pos, Quaternion.identity, trBlock);
-        //blockObject.name = $"Block_{x}_{y}";
-
-        //var block = blockObject.GetComponent<Block>();
-        //block.Set(x, y, type, blockObject);
 
         var destPos = BlockToWorld(x, y - 1);
         block.Move(x, y - 1, destPos);
