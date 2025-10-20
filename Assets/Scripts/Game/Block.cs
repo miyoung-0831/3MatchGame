@@ -23,8 +23,6 @@ public class Block : MonoBehaviour
     public GameObject BlockObject => objBlock;
     private GameObject objBlock = null;
 
-    private bool isSelectBlock = false;
-
     private Coroutine coMove = null;
     private bool isMoving = false;
 
@@ -144,16 +142,11 @@ public class Block : MonoBehaviour
 
     private void OnMouseDown()
     {
-        //if (this.type == BlockType.None)
-        //    return;
-
-        isSelectBlock = true;
         GameManager.Instance.SelectBlock(this);
     }
 
     private void OnMouseUp()
     {
-        isSelectBlock = false;
         GameManager.Instance.SelectBlock(null);
     }
 

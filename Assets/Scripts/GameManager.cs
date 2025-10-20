@@ -1,6 +1,7 @@
-﻿using UnityEngine;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
 
 public class GameManager : MonoBehaviour
 {
@@ -16,6 +17,10 @@ public class GameManager : MonoBehaviour
     private int score = 0;
     private int swapCount = 0;
 
+    private Coroutine hintCoroutine = null;
+    private WaitForSeconds hintTime = new WaitForSeconds(Define.HintDelayTime);
+    List<Block> hintBlocks = null;
+
     private void Awake()
     {
         if (Instance != null)
@@ -26,12 +31,13 @@ public class GameManager : MonoBehaviour
         Instance = this;
 
         DontDestroyOnLoad(gameObject);
+
+        board.OnClearBlock = OnClearBlock;
+        board.OnEndSwap = OnEndSwap;
     }
 
     private void Start()
     {
-        board.OnClearBlock = ClearBlock;
-
         StartCoroutine(OnGameStart());
     }
 
@@ -62,24 +68,92 @@ public class GameManager : MonoBehaviour
         if (board.IsMoving)
             return;
 
+        if (hintCoroutine != null)
+        {
+            StopCoroutine(hintCoroutine);
+            hintCoroutine = null;
+        }
+
+        HideHint();
+
         if (selectBlock != block)
         {
-            var dir = new Vector2(block.x - selectBlock.x, block.y - selectBlock.y);
-            dir.Normalize();
-
-            Debug.Log($"{selectBlock.type} <=> {block.type} / dir {dir} / {Mathf.RoundToInt(dir.x)} , {Mathf.RoundToInt(dir.y)}");
-            board.SwapBlock(selectBlock, block, Mathf.RoundToInt(dir.x), Mathf.RoundToInt(dir.y));
+            Debug.Log($"{selectBlock.type} <=> {block.type}");
+            board.SwapBlock(selectBlock, block);
 
             isSelectedBlock = false;
-
             swapCount++;
 
             uiGame.UpdateCount(swapCount);
         }
     }
 
-    public void ClearBlock(List<Block> blocks)
+    // 블록이 제거되었을 때 호출되는 콜백 함수
+    public void OnClearBlock(List<Block> blocks)
     {
-        uiGame.ClearBlock(blocks);
+        var topSpin = blocks.Where(_ => _.type == Define.BlockType.TopSpin).Count();
+        var normalBlock = blocks.Count - topSpin;
+
+        score += normalBlock * Define.NormalBlockScore;
+        score += topSpin * Define.TopSpinBlockScore;
+
+        uiGame.UpdateScore(score);
+        
+        if (topSpin > 0)
+            uiGame.UpdateTopSpin(topSpin);
+
+        StartHintTitmer();
+    }
+
+    // Swap이 끝났을 때 호출되는 콜백 함수
+    public void OnEndSwap()
+    {
+        StartHintTitmer();
+    }
+
+    private void StartHintTitmer()
+    {
+        if (hintCoroutine != null)
+            StopCoroutine(hintCoroutine);
+
+        hintCoroutine = StartCoroutine(HintTimer());
+    }
+
+    IEnumerator HintTimer()
+    {
+        while (board.IsMoving)
+            yield return null;
+
+        yield return hintTime;
+
+        hintBlocks = board.FindHint();
+
+        if (hintBlocks != null && hintBlocks.Count > 0)
+            ShowHint();
+
+        hintCoroutine = null;
+    }
+
+    private void ShowHint()
+    {
+        foreach (var block in hintBlocks)
+        {
+            var tile = board.GetBackgroundTile(block.x, block.y);
+            tile.SetHintActive(true);
+        }
+    }
+
+    private void HideHint()
+    {
+        if (hintBlocks == null || hintBlocks.Count == 0)
+            return;
+
+        foreach (var block in hintBlocks)
+        {
+            var tile = board.GetBackgroundTile(block.x, block.y);
+            tile.SetHintActive(false);
+        }
+
+        hintBlocks.Clear();
     }
 }

@@ -2,23 +2,32 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.VisualScripting;
 using UnityEngine;
-
+using UnityEngine.Tilemaps;
 using static Define;
+using static Unity.Collections.AllocatorManager;
 
 public class Board : MonoBehaviour
 {
-    [Header("배경 타일")]
+    [Header("배경 블록")]
     [SerializeField] private GameObject goBackgroudBTile = null;
     [SerializeField] private Transform trBackround = null;
 
-    [Header("색 타일")]
-    [SerializeField] private GameObject goBlock = null;
+    [Header("색 블록")]
     [SerializeField] private Transform trBlock = null;
 
     [Header("레벨 데이터")]
     [SerializeField] private LevelData levelData = null;
 
+    public BackgroundTile GetBackgroundTile(int x, int y)
+    {
+        if (backTiles.TryGetValue((x, y), out BackgroundTile tile))
+            return tile;
+        return null;
+    }
+
+    private Dictionary<(int, int), BackgroundTile> backTiles = new Dictionary<(int, int), BackgroundTile>();
     private Dictionary<(int, int), Block> board = new Dictionary<(int, int), Block>();
 
     private float blockSize = 0.9f;
@@ -30,6 +39,7 @@ public class Board : MonoBehaviour
     private bool isMoving = false;
 
     public System.Action<List<Block>> OnClearBlock = null;
+    public System.Action OnEndSwap = null;
 
     public void OnGenerateBoard()
     {
@@ -46,6 +56,7 @@ public class Board : MonoBehaviour
                 Vector3 pos = BlockToWorld(x, y);
                 var backTile = Instantiate(goBackgroudBTile, pos, Quaternion.identity, trBackround); // 배경타일 생성
 				backTile.name = $"Tile_{x}_{y}";
+                backTiles[(x, y)] = backTile.GetComponent<BackgroundTile>();
                 board[(x, y)] = null;
             }
         }
@@ -129,7 +140,7 @@ public class Board : MonoBehaviour
 
     private bool IsNeighborMatch(int x, int y, BlockType type)
     {
-        // 아래 2개의 타일에서 같은 색의 타일이 있는지 체크
+        // 아래 2개의 블록에서 같은 색의 블록이 있는지 체크
         var (dX, dY) = Define.Directions[(int)Dir.Down];
         if (!IsEmptyBlock(x + dX * 2, y + dY * 2))
         {
@@ -169,9 +180,7 @@ public class Board : MonoBehaviour
     private bool IsEmptyBlock(int x, int y)
     {
         if (board.TryGetValue((x, y), out Block block) && block != null)
-        {
             return false;
-        }
 
         return true;
     }
@@ -184,16 +193,16 @@ public class Board : MonoBehaviour
         return board[(x, y)].IsLock;
     }
 
-    // 타일 스왑
-    public void SwapBlock(Block blockA, Block blockB, int dx, int dy)
+    // 블록 스왑
+    public void SwapBlock(Block blockA, Block blockB)
     {
         isMoving = true;
 
-        StartCoroutine(SwapBlockCoroutine(blockA, blockB, dx, dy));
+        StartCoroutine(SwapBlockCoroutine(blockA, blockB));
     }
 
-    // 타일 스왑 코루틴
-    IEnumerator SwapBlockCoroutine(Block blockA, Block blockB, int dx, int dy)
+    // 블록 스왑 코루틴
+    IEnumerator SwapBlockCoroutine(Block blockA, Block blockB)
     {
         var posA = (blockA.x, blockA.y);
         var posB = (blockB.x, blockB.y);
@@ -216,18 +225,20 @@ public class Board : MonoBehaviour
         else
         {
             Debug.Log($"Not Match !!");
-            // 매치되지 않으니 타일 다시 되돌림.
+            // 매치되지 않으니 블록 다시 되돌림.
             blockA.Move(posA.x, posA.y, destB);
             blockB.Move(posB.x, posB.y, destA);
             board[(posA.x, posA.y)] = blockA;
             board[(posB.x, posB.y)] = blockB;
 
             yield return new WaitForSeconds(Define.BlockMoveTime);
+
             isMoving = false;
+            OnEndSwap?.Invoke();
         }
     }
 
-    // 매치된 타일 찾기
+    // 매치된 블록 찾기
     private List<Block> FindMatches()
     {
         var matched = new HashSet<Block>();
@@ -236,59 +247,70 @@ public class Board : MonoBehaviour
         foreach (var position in board)
         {
             var block = position.Value;
+            var matcheBlocks = FindMatch(block);
 
-            var match4 = new List<Block>() { block };
-
-            // 3개 이상 라인 체크
-            foreach (var dir in dirs)
-            {
-                var line = new List<Block>() { block };
-                // Up 방향
-                int dx = block.x + dir.Item1;
-                int dy = block.y + dir.Item2;
-
-                if (!IsLockBlock(dx, dy) && IsSameBlock(dx, dy, block.type)) // 라인 체크하면서 dx, dy 값이 변경되어 4매치 먼저 체크
-                    match4.Add(board[(dx, dy)]);
-
-                while (board.TryGetValue((dx, dy), out var dBlock) && !dBlock.IsLock && dBlock.type == block.type)
-                { 
-                    line.Add(dBlock);
-                    dx += dir.Item1;
-                    dy += dir.Item2;
-                }
-
-                // Down 방향
-                dx = block.x - dir.Item1;
-                dy = block.y - dir.Item2;
-
-                if (!IsLockBlock(dx, dy) && IsSameBlock(dx, dy, block.type))
-                    match4.Add(board[(dx, dy)]);
-
-                while (board.TryGetValue((dx, dy), out var dBlock) && !dBlock.IsLock && dBlock.type == block.type)
-                {
-                    line.Add(dBlock);
-                    dx -= dir.Item1;
-                    dy -= dir.Item2;
-                }
-
-                if (line.Count >= 3)
-                {
-                    foreach (var c in line)
-                        matched.Add(c);
-                }
-            }
-
-            if (match4.Count >= 4)
-            {
-                foreach (var c in match4)
-                    matched.Add(c);
-            }
+            matched.AddRange(matcheBlocks);
         }
 
         return matched.ToList();
     }
 
-    // 매치된 타일 제거
+    // 특정 블록 기준으로 매치되는 블록 찾기
+    private HashSet<Block> FindMatch(Block block)
+    {
+        var matched = new HashSet<Block>();
+
+        var dirs = new (int, int)[] { Directions[(int)Dir.Up], Directions[(int)Dir.LeftUp], Directions[(int)Dir.RightUp] };
+        var match4 = new List<Block>();
+
+        foreach (var dir in dirs)
+        {
+            var line = new List<Block>() { block };
+            // Up 방향
+            int dx = block.x + dir.Item1;
+            int dy = block.y + dir.Item2;
+
+            if (!IsLockBlock(dx, dy) && IsSameBlock(dx, dy, block.type)) // 라인 체크하면서 dx, dy 값이 변경되어 4매치 먼저 체크
+                match4.Add(board[(dx, dy)]);
+
+            while (board.TryGetValue((dx, dy), out var dBlock) && !dBlock.IsLock && dBlock.type == block.type)
+            {
+                line.Add(dBlock);
+                dx += dir.Item1;
+                dy += dir.Item2;
+            }
+
+            // Down 방향
+            dx = block.x - dir.Item1;
+            dy = block.y - dir.Item2;
+
+            if (!IsLockBlock(dx, dy) && IsSameBlock(dx, dy, block.type))
+                match4.Add(board[(dx, dy)]);
+
+            while (board.TryGetValue((dx, dy), out var dBlock) && !dBlock.IsLock && dBlock.type == block.type)
+            {
+                line.Add(dBlock);
+                dx -= dir.Item1;
+                dy -= dir.Item2;
+            }
+
+            if (line.Count >= 3)
+            {
+                foreach (var c in line)
+                    matched.Add(c);
+            }
+        }
+
+        if (match4.Count >= 4)
+        {
+            foreach (var c in match4)
+                matched.Add(c);
+        }
+
+        return matched;
+    }
+
+    // 매치된 블록 제거
     IEnumerator ClearBlock(List<Block> matches)
     {
         HashSet<(int, int)> unlockBlocks = new HashSet<(int, int)>();
@@ -296,8 +318,6 @@ public class Board : MonoBehaviour
         foreach (var match in matches)
         {
             match.ClearBlock();
-            board[(match.x, match.y)] = null;
-
             foreach (var dir in Define.Directions)
             {
                 var (dx, dy) = dir;
@@ -323,12 +343,13 @@ public class Board : MonoBehaviour
         foreach (var match in matches)
         {
             BlockPool.Instance.ReturnBlock(match.BlockObject);
+            board[(match.x, match.y)] = null;
         }
 
         StartCoroutine(FillBlock());
     }
 
-    // 빈 타일 채우기
+    // 빈 블록 채우기
     IEnumerator FillBlock()
     {
         var emptyBlocks = board.Where(_ => _.Value == null).OrderBy(_ => _.Key.Item1).ThenByDescending(_ => _.Key.Item2).ToList();
@@ -391,13 +412,13 @@ public class Board : MonoBehaviour
         ChainReaction();
     }
 
-    // 빈 타일의 이웃 타일 중에서 굴러올 수 있는 타일 반환
+    // 빈 블록의 이웃 블록 중에서 굴러올 수 있는 블록 반환
     public Block GetNeighbor(int x, int y)
     {
         var (upX, upY) = Define.Directions[(int)Dir.Up];
 
         var (dx, dy) = Define.Directions[(int)Dir.LeftUp];
-        // 왼쪽 위에 타일 위에 타일이 없으면 굴러오도록 함.
+        // 왼쪽 위 블록 위에 블록이 없으면 굴러오도록 함.
         if (!IsEmptyBlock(x + dx, y + dy))
         {
             if (IsEmptyBlock(x + dx + upX, y + dy + upY))
@@ -419,7 +440,7 @@ public class Board : MonoBehaviour
         return null;
     }
 
-    // 새 타일 스폰
+    // 새 블록 스폰
     public void SpawnBlock()
     {
         var (x, y) = spwanPoint;
@@ -450,6 +471,72 @@ public class Board : MonoBehaviour
         else
         {
             isMoving = false;
+            OnEndSwap?.Invoke();
         }
     }
+
+    #region Hint
+    public List<Block> FindHint()
+    {
+        List<Block> result = new List<Block>();
+
+        for (var x = 0; x < width; x++)
+        {
+            for (var y = 0; y < height; y++)
+            {
+                if (!board.ContainsKey((x, y)))
+                    continue;
+
+                var currentBlock = board[(x, y)];
+                foreach (var (dx, dy) in Define.Directions)
+                {
+                    int nX = currentBlock.x + dx;
+                    int nY = currentBlock.y + dy;
+
+                    if (!board.ContainsKey((nX, nY)))
+                        continue;
+                    
+                    var neighborBlock = board[(nX, nY)];
+                    if (neighborBlock.type == currentBlock.type)
+                        continue;
+
+                    // 임시로 데이터만 스왑
+                    TempSwap(currentBlock, neighborBlock);
+
+                    // 스왑 후 주변에 매치가 생겼는지 검사
+                    var matches = FindMatch(currentBlock);
+                    if (matches.Count > 0)
+                    {
+                        result.AddRange(matches);
+                        result.Add(neighborBlock);
+                        // 임시로 스왑 한 블록 복구
+                        TempSwap(currentBlock, neighborBlock);
+
+                        return result;
+                    }
+                    // 임시로 스왑 한 블록 복구
+                    TempSwap(currentBlock, neighborBlock);
+                }
+            }
+        }
+
+        return result;
+    }
+
+    // 임시로 블록 스왑
+    private void TempSwap(Block blockA, Block blockB)
+    {
+        var posA = (blockA.x, blockA.y);
+        var posB = (blockB.x, blockB.y);
+
+        blockA.x = posB.x;
+        blockA.y = posB.y;
+
+        blockB.x = posA.x;
+        blockB.y = posA.y;
+
+        board[(posA.x, posA.y)] = blockB;
+        board[(posB.x, posB.y)] = blockA;
+    }
+    #endregion
 }

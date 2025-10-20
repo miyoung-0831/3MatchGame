@@ -49,4 +49,6 @@ public static class Define
 
     public static int NormalBlockScore = 20;
     public static int TopSpinBlockScore = 500;
+    public static float MaxScore = 100000;
+    public static float HintDelayTime = 5.0f;
 }
