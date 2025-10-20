@@ -25,10 +25,17 @@ public class Board : MonoBehaviour
         return null;
     }
 
+    public Block GetBlock(int x, int y)
+    {
+        if (board.TryGetValue((x, y), out Block block))
+            return block;
+        return null;
+    }
+
     private Dictionary<(int, int), BackgroundTile> backTiles = new Dictionary<(int, int), BackgroundTile>();
     private Dictionary<(int, int), Block> board = new Dictionary<(int, int), Block>();
 
-    private float blockSize = 0.9f;
+    private float blockSize = 0.8f;
     private int width = 7;
     private int height = 6;
     private (int, int) spwanPoint = (3, 6);
@@ -97,7 +104,7 @@ public class Board : MonoBehaviour
         var newY = (Math.Sqrt(3) / 2 * x + Math.Sqrt(3) * y);
         newX = newX * (blockSize / 2f);
         newY = newY * ((blockSize * 0.93f) / Math.Sqrt(3));
-        return new Vector3(newX, (float)newY) + new Vector3(-2f, -3f);
+        return new Vector3(newX, (float)newY) + new Vector3(-1.8f, -3f);
     }
 
     private bool InRhombus(int x, int y)

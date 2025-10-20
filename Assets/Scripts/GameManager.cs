@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using UnityEngine;
 
 public class GameManager : MonoBehaviour
@@ -47,6 +48,8 @@ public class GameManager : MonoBehaviour
         
         Setup();
         isSelectedBlock = false;
+
+        StartHintTitmer();
     }
 
     private void Setup()
@@ -54,6 +57,7 @@ public class GameManager : MonoBehaviour
         board.OnGenerateBoard();
     }
 
+    // 이동 시킬 블록 선택
     public void SelectBlock(Block block)
     {
         if (board.IsMoving)
@@ -63,10 +67,28 @@ public class GameManager : MonoBehaviour
         selectBlock = block;
     }
 
+    // 블록 스왑
     public void SwapBlock(Block block)
     {
+        if (selectBlock == block)
+            return;
+
         if (board.IsMoving)
             return;
+
+        // 인접 블록이 아니면 한칸만 이동
+        Vector2 dir = new Vector2(Mathf.Abs(block.x - selectBlock.x), Mathf.Abs(block.y - selectBlock.y));
+        if (dir.x > 1 || dir.y > 1)
+        {
+            dir = new Vector2(block.x - selectBlock.x, block.y - selectBlock.y);
+            dir.x = dir.x == 0 ? 0 : dir.x / Mathf.Abs(dir.x);
+            dir.y = dir.y == 0 ? 0 : dir.y / Mathf.Abs(dir.y);
+
+            block = board.GetBlock(selectBlock.x + (int)dir.x, selectBlock.y + (int)dir.y);
+
+            if (block == null)
+                return;
+        }
 
         if (hintCoroutine != null)
         {
@@ -76,16 +98,13 @@ public class GameManager : MonoBehaviour
 
         HideHint();
 
-        if (selectBlock != block)
-        {
-            Debug.Log($"{selectBlock.type} <=> {block.type}");
-            board.SwapBlock(selectBlock, block);
+        Debug.Log($"{selectBlock.type} <=> {block.type}");
+        board.SwapBlock(selectBlock, block);
 
-            isSelectedBlock = false;
-            swapCount++;
+        isSelectedBlock = false;
+        swapCount++;
 
-            uiGame.UpdateCount(swapCount);
-        }
+        uiGame.UpdateCount(swapCount);
     }
 
     // 블록이 제거되었을 때 호출되는 콜백 함수
@@ -114,6 +133,7 @@ public class GameManager : MonoBehaviour
             uiGame.ShowShuffle();
     }
 
+    // 힌트 타이머 시작
     private void StartHintTitmer()
     {
         if (hintCoroutine != null)
