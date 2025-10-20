@@ -2,9 +2,12 @@
 using UnityEngine;
 using UnityEngine.U2D;
 
-public class SpriteManager : MonoBehaviour
+public class ResourceManager : MonoBehaviour
 {
-    public static SpriteManager Instance { get; private set; }
+    public static ResourceManager Instance { get; private set; }
+
+    private Dictionary<string, Sprite> spriteCache = new Dictionary<string, Sprite>();
+    private Dictionary<string, Texture> textureCache = new Dictionary<string, Texture>();
 
     public SpriteAtlas spriteAtlas;
 
@@ -16,6 +19,8 @@ public class SpriteManager : MonoBehaviour
             return;
         }
         Instance = this;
+
+        DontDestroyOnLoad(gameObject);
     }
     
     private void Start()
@@ -23,7 +28,6 @@ public class SpriteManager : MonoBehaviour
         spriteAtlas = Resources.Load<SpriteAtlas>("Atlas/BlockAtlas");
     }
 
-    private Dictionary<string, Sprite> spriteCache = new Dictionary<string, Sprite>();
 
     public Sprite GetSprite(string name)
     {
@@ -37,8 +41,6 @@ public class SpriteManager : MonoBehaviour
 
         return res;
     }
-
-    private Dictionary<string, Texture> textureCache = new Dictionary<string, Texture>();
 
     public Texture GetTexture(string name)
     {

@@ -11,14 +11,14 @@ public class Block : MonoBehaviour
     public int y;
     public BlockType type;
     
-    [SerializeField]
-    private SpriteRenderer spriteRenderer;
-    [SerializeField]
-    private GameObject objImage = null;
-    [SerializeField]
-    private GameObject objCrush = null;
-    [SerializeField]
-    private Animator topSpinAni = null;
+    [SerializeField] private SpriteRenderer spriteRenderer;
+    [SerializeField]  private GameObject objImage = null;
+    [SerializeField] private GameObject objCrush = null;
+    [SerializeField] private Animator topSpinAni = null;
+    [SerializeField] private Material particleMat;
+
+    private float elapsedTime = 0;
+    private float movingTime = 0.2f;
 
     public GameObject BlockObject => objBlock;
     private GameObject objBlock = null;
@@ -47,7 +47,7 @@ public class Block : MonoBehaviour
         this.type = type;
         this.objBlock = obj;
 
-        spriteRenderer.sprite = SpriteManager.Instance.GetSprite(type.GetImage());
+        spriteRenderer.sprite = ResourceManager.Instance.GetSprite(type.GetImage());
         objImage.SetActive(true);
 
         if (type == BlockType.TopSpin)
@@ -56,6 +56,26 @@ public class Block : MonoBehaviour
             isLock = false;
 
         //isSelectBlock = false;
+    }
+
+    private void OnDisable()
+    {
+        ResetBlock();
+    }
+
+    // 블럭 재사용을 위한 초기화
+    private void ResetBlock()
+    {
+        isLock = false;
+        elapsedTime = 0;
+        movingTime = 0.2f;
+        isMoving = false;
+        objBlock = null;
+
+        objImage.SetActive(true);
+        objCrush.SetActive(false);
+
+        topSpinAni.enabled = false;
     }
 
     public void ClearBlock()
@@ -89,9 +109,6 @@ public class Block : MonoBehaviour
         coMove = StartCoroutine(MoveCoroutine(dest, movingTime));
     }
 
-    private float elapsedTime = 0;
-    private float movingTime = 0.2f;
-
     private IEnumerator MoveCoroutine(Vector3 dest, float time)
     {
         isMoving = true;
@@ -119,11 +136,10 @@ public class Block : MonoBehaviour
         topSpinAni.enabled = true;
     }
 
-    [SerializeField] private Material particleMat;
 
     private void ChangeParticleTexture()
     {
-        particleMat.mainTexture = SpriteManager.Instance.GetTexture(type.GetParticleTexture());
+        particleMat.mainTexture = ResourceManager.Instance.GetTexture(type.GetParticleTexture());
     }
 
     private void OnMouseDown()

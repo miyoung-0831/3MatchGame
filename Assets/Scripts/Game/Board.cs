@@ -19,10 +19,9 @@ public class Board : MonoBehaviour
     [Header("레벨 데이터")]
     [SerializeField] private LevelData levelData = null;
 
-    private float blockSize = 0.9f;
-
     private Dictionary<(int, int), Block> board = new Dictionary<(int, int), Block>();
 
+    private float blockSize = 0.9f;
     private int width = 7;
     private int height = 6;
     private (int, int) spwanPoint = (3, 6);
@@ -59,19 +58,33 @@ public class Board : MonoBehaviour
                 continue;
 
             var type = blockInfo.Value;
+            board[(x, y)] = GenerateBlock(x, y, type);
+            //Vector3 pos = BlockToWorld(x, y);
+            //var blockObject = BlockPool.Instance.GetBlock(goBlock);// Instantiate(goBlock, pos, Quaternion.identity, trBlock);
+            //blockObject.name = $"Block_{type}";
 
-            Vector3 pos = BlockToWorld(x, y);
-            var blockObject = Instantiate(goBlock, pos, Quaternion.identity, trBlock);
-            blockObject.name = $"Block_{type}";
+            //var block = blockObject.GetComponent<Block>();
+            //block.Set(x, y, type, blockObject);
 
-            var block = blockObject.GetComponent<Block>();
-            block.Set(x, y, type, blockObject);
-
-            board[(x, y)] = block;
+            //board[(x, y)] = block;
         }
 
         // 랜덤 생성 
         //GenerateBoardWithoutMatches();
+    }
+
+    private Block GenerateBlock(int x, int y, BlockType type)
+    {
+        Vector3 pos = BlockToWorld(x, y);
+        var blockObject = BlockPool.Instance.GetBlock();// Instantiate(goBlock, pos, Quaternion.identity, trBlock);
+        blockObject.transform.SetParent(trBlock);
+        blockObject.transform.position = pos;
+        blockObject.name = $"Block_{type}";
+
+        var block = blockObject.GetComponent<Block>();
+        block.Set(x, y, type, blockObject);
+
+        return block;
     }
 
     private Vector3 BlockToWorld(int x, int y)
@@ -110,14 +123,16 @@ public class Board : MonoBehaviour
             }
             while (IsNeighborMatch(x, y, type));
 
-            Vector3 pos = BlockToWorld(x, y);
-            var blockObject = Instantiate(goBlock, pos, Quaternion.identity, trBlock);
-            blockObject.name = $"Block_{x}_{y}";
+            board[(x, y)] = GenerateBlock(x, y, type);
 
-            var block = blockObject.GetComponent<Block>();
-            block.Set(x, y, type, blockObject);
+            //Vector3 pos = BlockToWorld(x, y);
+            //var blockObject = Instantiate(goBlock, pos, Quaternion.identity, trBlock);
+            //blockObject.name = $"Block_{x}_{y}";
 
-            board[(x, y)] = block;
+            //var block = blockObject.GetComponent<Block>();
+            //block.Set(x, y, type, blockObject);
+
+            //board[(x, y)] = block;
         }
     }
 
@@ -319,7 +334,8 @@ public class Board : MonoBehaviour
 
         foreach (var match in matches)
         {
-            GameObject.DestroyImmediate(match.BlockObject);
+            //GameObject.DestroyImmediate(match.BlockObject);
+            BlockPool.Instance.ReturnBlock(match.BlockObject);
         }
 
         StartCoroutine(FillBlock());
@@ -428,12 +444,13 @@ public class Board : MonoBehaviour
         }
 
         var type = GetRandomBlockType();
-        Vector3 pos = BlockToWorld(x, y);
-        var blockObject = Instantiate(goBlock, pos, Quaternion.identity, trBlock);
-        blockObject.name = $"Block_{x}_{y}";
+        var block = GenerateBlock(x, y, type);
+        //Vector3 pos = BlockToWorld(x, y);
+        //var blockObject = Instantiate(goBlock, pos, Quaternion.identity, trBlock);
+        //blockObject.name = $"Block_{x}_{y}";
 
-        var block = blockObject.GetComponent<Block>();
-        block.Set(x, y, type, blockObject);
+        //var block = blockObject.GetComponent<Block>();
+        //block.Set(x, y, type, blockObject);
 
         var destPos = BlockToWorld(x, y - 1);
         block.Move(x, y - 1, destPos);
