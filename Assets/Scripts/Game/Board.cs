@@ -495,6 +495,7 @@ public class Board : MonoBehaviour
         board[(x, y - 1)] = block;
     }
 
+    // 연쇄 반응
     public void ChainReaction()
     {
         var matches = FindMatches();
@@ -505,12 +506,12 @@ public class Board : MonoBehaviour
         }
         else
         {
-            var matchCount = FindMatchBlock().Count;
+            var matchCount = FindMatchableBlock().Count;
             bool isShuffled = false;
             while (matchCount == 0)
             {
                 Shuffle();
-                matchCount = FindMatchBlock().Count;
+                matchCount = FindMatchableBlock().Count;
                 isShuffled = true;
             }
 
@@ -519,6 +520,7 @@ public class Board : MonoBehaviour
         }
     }
 
+    // 블록을 섞는다.
     private void Shuffle()
     {
         var blocks = board.Values.Where(_ => _ != null && _.type != BlockType.TopSpin).ToList();
@@ -539,10 +541,11 @@ public class Board : MonoBehaviour
     #region Hint
     public List<Block> FindHint()
     {
-        return FindMatchBlock();
+        return FindMatchableBlock();
     }
 
-    private List<Block> FindMatchBlock()
+    // 매치 가능한 블록을 찾는다.
+    private List<Block> FindMatchableBlock()
     {
         List<Block> result = new List<Block>();
 
