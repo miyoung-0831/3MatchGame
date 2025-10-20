@@ -20,7 +20,7 @@ public class SpriteManager : MonoBehaviour
     
     private void Start()
     {
-        spriteAtlas = Resources.Load<SpriteAtlas>("Atlas/TileAtlas");
+        spriteAtlas = Resources.Load<SpriteAtlas>("Atlas/BlockAtlas");
     }
 
     private Dictionary<string, Sprite> spriteCache = new Dictionary<string, Sprite>();

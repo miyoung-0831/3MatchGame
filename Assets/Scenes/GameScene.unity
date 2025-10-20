@@ -170,10 +170,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 47e223e775e9d7a45a1306effa18ed1b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  goBackgroudTile: {fileID: 291300169641515270, guid: 322f666c47e537742adf8daf7fbf0579, type: 3}
+  goBackgroudBTile: {fileID: 291300169641515270, guid: 322f666c47e537742adf8daf7fbf0579, type: 3}
   trBackround: {fileID: 1832738578}
-  goTile: {fileID: 6477618620542361538, guid: ef65fb42e241d984eafdc66b29298803, type: 3}
-  trTile: {fileID: 946129955}
+  goBlock: {fileID: 6477618620542361538, guid: ef65fb42e241d984eafdc66b29298803, type: 3}
+  trBlock: {fileID: 946129955}
   levelData: {fileID: 11400000, guid: bc51ca8cc028daf478d860fc588fe527, type: 2}
 --- !u!1 &519420028
 GameObject:
@@ -482,7 +482,7 @@ GameObject:
   m_Component:
   - component: {fileID: 946129955}
   m_Layer: 0
-  m_Name: Tiles
+  m_Name: Blocks
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -544,7 +544,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1832738578}
   m_Layer: 0
-  m_Name: Background
+  m_Name: BackgroundTile
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

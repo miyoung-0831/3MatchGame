@@ -2,46 +2,46 @@
 
 public static class Extensions
 {
-    public static string GetImage(this TileType tileType)
+    public static string GetImage(this BlockType blockType)
     {
-        switch (tileType)
+        switch (blockType)
         {
-            case TileType.Green:
+            case BlockType.Green:
                 return "Block_g";
-            case TileType.Orange:
+            case BlockType.Orange:
                 return "Block_o";
-            case TileType.Pink:
+            case BlockType.Pink:
                 return "Block_p";
-            case TileType.Purple:
+            case BlockType.Purple:
                 return "Block_pp";
-            case TileType.Red:
+            case BlockType.Red:
                 return "Block_r";
-            case TileType.Yellow:
+            case BlockType.Yellow:
                 return "Block_y";
-            case TileType.TopSpin:
+            case BlockType.TopSpin:
                 return "SpinningTopBasic";
         }
 
         return string.Empty;
     }
 
-    public static string GetParticleTexture(this TileType tileType)
+    public static string GetParticleTexture(this BlockType blockType)
     {
-        switch (tileType)
+        switch (blockType)
         {
-            case TileType.Green:
+            case BlockType.Green:
                 return "FX_BlockCrush/Texture/ptc_blockshellG";
-            case TileType.Orange:
+            case BlockType.Orange:
                 return "FX_BlockCrush/Texture/ptc_blockshellO";
-            case TileType.Pink:
+            case BlockType.Pink:
                 return "FX_BlockCrush/Texture/ptc_blockshellP";
-            case TileType.Purple:
+            case BlockType.Purple:
                 return "FX_BlockCrush/Texture/ptc_blockshellV";
-            case TileType.Red:
+            case BlockType.Red:
                 return "FX_BlockCrush/Texture/ptc_blockshellR";
-            case TileType.Yellow:
+            case BlockType.Yellow:
                 return "FX_BlockCrush/Texture/ptc_blockshellY";
-            case TileType.TopSpin:
+            case BlockType.TopSpin:
                 return "FX_BlockCrush/Texture/ptc_blockshellB";
 
         }

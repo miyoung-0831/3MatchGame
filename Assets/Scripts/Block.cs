@@ -5,11 +5,11 @@ using System.Collections;
 using static Define;
 
 [Serializable]
-public class Tile : MonoBehaviour
+public class Block : MonoBehaviour
 {
     public int x;
     public int y;
-    public TileType type;
+    public BlockType type;
     
     [SerializeField]
     private SpriteRenderer spriteRenderer;
@@ -20,10 +20,10 @@ public class Tile : MonoBehaviour
     [SerializeField]
     private Animator topSpinAni = null;
 
-    public GameObject TileObject => objTile;
-    private GameObject objTile = null;
+    public GameObject BlockObject => objBlock;
+    private GameObject objBlock = null;
 
-    private bool isSelectTile = false;
+    private bool isSelectBlock = false;
 
     private Coroutine coMove = null;
     private bool isMoving = false;
@@ -31,7 +31,7 @@ public class Tile : MonoBehaviour
     public bool IsLock => isLock;
     private bool isLock = false;
 
-    public Tile(int x, int y, TileType type)
+    public Block(int x, int y, BlockType type)
     {
         this.x = x;
         this.y = y;
@@ -40,25 +40,25 @@ public class Tile : MonoBehaviour
         objCrush.SetActive(false);
     }
 
-    public void Set(int x, int y, TileType type, GameObject obj)
+    public void Set(int x, int y, BlockType type, GameObject obj)
     {
         this.x = x;
         this.y = y;
         this.type = type;
-        this.objTile = obj;
+        this.objBlock = obj;
 
         spriteRenderer.sprite = SpriteManager.Instance.GetSprite(type.GetImage());
         objImage.SetActive(true);
 
-        if (type == TileType.TopSpin)
+        if (type == BlockType.TopSpin)
             isLock = true;
         else
             isLock = false;
 
-        //isSelectTile = false;
+        //isSelectBlock = false;
     }
 
-    public void ClearTile()
+    public void ClearBlock()
     {
         ChangeParticleTexture();
 
@@ -112,7 +112,7 @@ public class Tile : MonoBehaviour
     // 팽이 잠금 해제 (팽이 돌아가는 애니메이션 재생)
     public void UnlockTopSpin()
     {
-        if (type != TileType.TopSpin)
+        if (type != BlockType.TopSpin)
             return;
 
         isLock = false;
@@ -128,28 +128,28 @@ public class Tile : MonoBehaviour
 
     private void OnMouseDown()
     {
-        //if (this.type == TileType.None)
+        //if (this.type == BlockType.None)
         //    return;
 
-        isSelectTile = true;
-        GameManager.Instance.SelectTile(this);
+        isSelectBlock = true;
+        GameManager.Instance.SelectBlock(this);
     }
 
     private void OnMouseUp()
     {
-        isSelectTile = false;
-        GameManager.Instance.SelectTile(null);
+        isSelectBlock = false;
+        GameManager.Instance.SelectBlock(null);
     }
 
     private void OnMouseEnter()
     {
-        if (GameManager.Instance.IsSelectedTile)
-            GameManager.Instance.SwapTile(this);
+        if (GameManager.Instance.IsSelectedBlock)
+            GameManager.Instance.SwapBlock(this);
     }
 
     //private void OnMouseExit()
     //{
-    //    if (isSelectTile)
-    //        GameManager.Instance.SwapTile(this);
+    //    if (isSelectBlock)
+    //        GameManager.Instance.SwapBlock(this);
     //}
 }

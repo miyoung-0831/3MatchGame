@@ -7,9 +7,9 @@ public class GameManager : MonoBehaviour
 
     [SerializeField] Board board = null;
 
-    public bool IsSelectedTile => isSelectedTile;
-    private bool isSelectedTile = false;
-    private Tile selectTile = null;
+    public bool IsSelectedBlock => isSelectedBlock;
+    private bool isSelectedBlock = false;
+    private Block selectBlock = null;
 
     private void Awake()
     {
@@ -31,7 +31,7 @@ public class GameManager : MonoBehaviour
         yield return null;
         
         Setup();
-        isSelectedTile = false;
+        isSelectedBlock = false;
     }
 
     private void Setup()
@@ -39,29 +39,29 @@ public class GameManager : MonoBehaviour
         board.OnGenerateBoard();
     }
 
-    public void SelectTile(Tile tile)
+    public void SelectBlock(Block block)
     {
         if (board.IsMoving)
             return;
 
-        isSelectedTile = tile != null;
-        selectTile = tile;
+        isSelectedBlock = block != null;
+        selectBlock = block;
     }
 
-    public void SwapTile(Tile tile)
+    public void SwapBlock(Block block)
     {
         if (board.IsMoving)
             return;
 
-        if (selectTile != tile)
+        if (selectBlock != block)
         {
-            var dir = new Vector2(tile.x - selectTile.x, tile.y - selectTile.y);
+            var dir = new Vector2(block.x - selectBlock.x, block.y - selectBlock.y);
             dir.Normalize();
 
-            Debug.Log($"{selectTile.type} <=> {tile.type} / dir {dir} / {Mathf.RoundToInt(dir.x)} , {Mathf.RoundToInt(dir.y)}");
-            board.SwapTile(selectTile, tile, Mathf.RoundToInt(dir.x), Mathf.RoundToInt(dir.y));
+            Debug.Log($"{selectBlock.type} <=> {block.type} / dir {dir} / {Mathf.RoundToInt(dir.x)} , {Mathf.RoundToInt(dir.y)}");
+            board.SwapBlock(selectBlock, block, Mathf.RoundToInt(dir.x), Mathf.RoundToInt(dir.y));
 
-            isSelectedTile = false;
+            isSelectedBlock = false;
         }
     }
 }

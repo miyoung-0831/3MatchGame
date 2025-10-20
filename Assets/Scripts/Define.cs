@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 public class Define
 {
-    public enum TileType
+    public enum BlockType
     {
         Green,
         Orange,

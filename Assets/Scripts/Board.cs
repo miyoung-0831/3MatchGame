@@ -9,19 +9,19 @@ using static Define;
 public class Board : MonoBehaviour
 {
     [Header("배경 타일")]
-    [SerializeField] private GameObject goBackgroudTile = null;
+    [SerializeField] private GameObject goBackgroudBTile = null;
     [SerializeField] private Transform trBackround = null;
 
     [Header("색 타일")]
-    [SerializeField] private GameObject goTile = null;
-    [SerializeField] private Transform trTile = null;
+    [SerializeField] private GameObject goBlock = null;
+    [SerializeField] private Transform trBlock = null;
 
     [Header("레벨 데이터")]
     [SerializeField] private LevelData levelData = null;
 
-    private float tileSize = 0.9f;
+    private float blockSize = 0.9f;
 
-    private Dictionary<(int, int), Tile> board = new Dictionary<(int, int), Tile>();
+    private Dictionary<(int, int), Block> board = new Dictionary<(int, int), Block>();
 
     private int width = 7;
     private int height = 6;
@@ -42,44 +42,44 @@ public class Board : MonoBehaviour
                 if (InRhombus(x, y) == false)
                     continue;
 
-                Vector3 pos = TileToWorld(x, y);
-                var backTile = Instantiate(goBackgroudTile, pos, Quaternion.identity, trBackround); // 배경타일 생성
-                backTile.name = $"BackTile_{x}_{y}";
+                Vector3 pos = BlockToWorld(x, y);
+                var backTile = Instantiate(goBackgroudBTile, pos, Quaternion.identity, trBackround); // 배경타일 생성
+				backTile.name = $"Tile_{x}_{y}";
                 board[(x, y)] = null;
             }
         }
 
         // 레벨 데이터로 보드 생성
-        var levelTiles = levelData.GetData();
-        foreach (var tileInfo in levelTiles)
+        var levelBlocks = levelData.GetData();
+        foreach (var blockInfo in levelBlocks)
         {
-            var (x, y) = tileInfo.Key;
+            var (x, y) = blockInfo.Key;
 
             if (InRhombus(x, y) == false)
                 continue;
 
-            var type = tileInfo.Value;
+            var type = blockInfo.Value;
 
-            Vector3 pos = TileToWorld(x, y);
-            var tileObject = Instantiate(goTile, pos, Quaternion.identity, trTile);
-            tileObject.name = $"Tile_{type}";
+            Vector3 pos = BlockToWorld(x, y);
+            var blockObject = Instantiate(goBlock, pos, Quaternion.identity, trBlock);
+            blockObject.name = $"Block_{type}";
 
-            var tile = tileObject.GetComponent<Tile>();
-            tile.Set(x, y, type, tileObject);
+            var block = blockObject.GetComponent<Block>();
+            block.Set(x, y, type, blockObject);
 
-            board[(x, y)] = tile;
+            board[(x, y)] = block;
         }
 
         // 랜덤 생성 
         //GenerateBoardWithoutMatches();
     }
 
-    private Vector3 TileToWorld(int x, int y)
+    private Vector3 BlockToWorld(int x, int y)
     {
         var newX = (1.5f * x);
         var newY = (Math.Sqrt(3) / 2 * x + Math.Sqrt(3) * y);
-        newX = newX * (tileSize / 2f);
-        newY = newY * ((tileSize * 0.93f) / Math.Sqrt(3));
+        newX = newX * (blockSize / 2f);
+        newY = newY * ((blockSize * 0.93f) / Math.Sqrt(3));
         return new Vector3(newX, (float)newY) + new Vector3(-2f, -3f);
     }
 
@@ -96,13 +96,13 @@ public class Board : MonoBehaviour
         var keys = board.Keys.ToList();
         foreach (var (x, y) in keys)
         {
-            TileType type;
+            BlockType type;
 
             int safety = 0;
 
             do
             {
-                type = GetRandomTileType();
+                type = GetRandomBlockType();
 
                 safety++;
                 if (safety > 100)
@@ -110,64 +110,64 @@ public class Board : MonoBehaviour
             }
             while (IsNeighborMatch(x, y, type));
 
-            Vector3 pos = TileToWorld(x, y);
-            var tileObject = Instantiate(goTile, pos, Quaternion.identity, trTile);
-            tileObject.name = $"Tile_{x}_{y}";
+            Vector3 pos = BlockToWorld(x, y);
+            var blockObject = Instantiate(goBlock, pos, Quaternion.identity, trBlock);
+            blockObject.name = $"Block_{x}_{y}";
 
-            var tile = tileObject.GetComponent<Tile>();
-            tile.Set(x, y, type, tileObject);
+            var block = blockObject.GetComponent<Block>();
+            block.Set(x, y, type, blockObject);
 
-            board[(x, y)] = tile;
+            board[(x, y)] = block;
         }
     }
 
-    private TileType GetRandomTileType()
+    private BlockType GetRandomBlockType()
     {
-        return (TileType) UnityEngine.Random.Range(0, (int)TileType.ColorMax);
+        return (BlockType) UnityEngine.Random.Range(0, (int)BlockType.ColorMax);
     }
 
-    private bool IsNeighborMatch(int x, int y, TileType type)
+    private bool IsNeighborMatch(int x, int y, BlockType type)
     {
         // 아래 2개의 타일에서 같은 색의 타일이 있는지 체크
         var (dX, dY) = Define.Directions[(int)Dir.Down];
-        if (!IsEmptyTile(x + dX * 2, y + dY * 2))
+        if (!IsEmptyBlock(x + dX * 2, y + dY * 2))
         {
-            if (IsSameTile(x + dX, y + dY, type) && IsSameTile(x + dX * 2, y + dY * 2, type))
+            if (IsSameBlock(x + dX, y + dY, type) && IsSameBlock(x + dX * 2, y + dY * 2, type))
                 return true;
         }
 
         var (ldX, ldY) = Define.Directions[(int)Dir.LeftDown];
-        if (!IsEmptyTile(x + ldX * 2, y + ldY * 2))
+        if (!IsEmptyBlock(x + ldX * 2, y + ldY * 2))
         {
-            if (IsSameTile(x + ldX, y + ldY, type) && IsSameTile(x + ldX * 2, y + ldY * 2, type))
+            if (IsSameBlock(x + ldX, y + ldY, type) && IsSameBlock(x + ldX * 2, y + ldY * 2, type))
                 return true;
         }
 
         var (rdX, rdY) = Define.Directions[(int)Dir.RightDown];
-        if (!IsEmptyTile(x + rdX * 2, y + rdY * 2))
+        if (!IsEmptyBlock(x + rdX * 2, y + rdY * 2))
         {
-            if (IsSameTile(x + rdX, y + rdY, type) && IsSameTile(x + rdX * 2, y + rdY * 2, type))
+            if (IsSameBlock(x + rdX, y + rdY, type) && IsSameBlock(x + rdX * 2, y + rdY * 2, type))
                 return true;
         }
 
         // 4개 만들어지는지 체크
-        if (IsSameTile(x + dX, y + dY, type) && IsSameTile(x + ldX, y + ldY, type) && IsSameTile(x + rdX, y + rdY, type))
+        if (IsSameBlock(x + dX, y + dY, type) && IsSameBlock(x + ldX, y + ldY, type) && IsSameBlock(x + rdX, y + rdY, type))
             return true;
 
         return false;
     }
 
-    private bool IsSameTile(int x, int y, TileType type)
+    private bool IsSameBlock(int x, int y, BlockType type)
     {
-        if (IsEmptyTile(x, y))
+        if (IsEmptyBlock(x, y))
             return false;
 
         return board[(x, y)].type == type;
     }
 
-    private bool IsEmptyTile(int x, int y)
+    private bool IsEmptyBlock(int x, int y)
     {
-        if (board.TryGetValue((x, y), out Tile tile) && tile != null)
+        if (board.TryGetValue((x, y), out Block block) && block != null)
         {
             return false;
         }
@@ -175,34 +175,34 @@ public class Board : MonoBehaviour
         return true;
     }
 
-    private bool IsLockTile(int x, int y)
+    private bool IsLockBlock(int x, int y)
     {
-        if (IsEmptyTile(x, y))
+        if (IsEmptyBlock(x, y))
             return false;
 
         return board[(x, y)].IsLock;
     }
 
     // 타일 스왑
-    public void SwapTile(Tile tileA, Tile tileB, int dx, int dy)
+    public void SwapBlock(Block blockA, Block blockB, int dx, int dy)
     {
         isMoving = true;
 
-        StartCoroutine(SwapTileCoroutine(tileA, tileB, dx, dy));
+        StartCoroutine(SwapBlockCoroutine(blockA, blockB, dx, dy));
     }
 
     // 타일 스왑 코루틴
-    IEnumerator SwapTileCoroutine(Tile tileA, Tile tileB, int dx, int dy)
+    IEnumerator SwapBlockCoroutine(Block blockA, Block blockB, int dx, int dy)
     {
-        var posA = (tileA.x, tileA.y);
-        var posB = (tileB.x, tileB.y);
-        var destA = TileToWorld(tileB.x, tileB.y);
-        var destB = TileToWorld(tileA.x, tileA.y);
+        var posA = (blockA.x, blockA.y);
+        var posB = (blockB.x, blockB.y);
+        var destA = BlockToWorld(blockB.x, blockB.y);
+        var destB = BlockToWorld(blockA.x, blockA.y);
 
-        tileA.Move(posB.x, posB.y, destA);
-        tileB.Move(posA.x, posA.y, destB);
-        board[(posA.x, posA.y)] = tileB;
-        board[(posB.x, posB.y)] = tileA;
+        blockA.Move(posB.x, posB.y, destA);
+        blockB.Move(posA.x, posA.y, destB);
+        board[(posA.x, posA.y)] = blockB;
+        board[(posB.x, posB.y)] = blockA;
 
         yield return new WaitForSeconds(0.2f);
 
@@ -210,16 +210,16 @@ public class Board : MonoBehaviour
         if (matches.Count > 0)
         {
             Debug.Log($"Match !! {matches.Count}");
-            StartCoroutine(ClearTile(matches));
+            StartCoroutine(ClearBlock(matches));
         }
         else
         {
             Debug.Log($"Not Match !!");
             // 매치되지 않으니 타일 다시 되돌림.
-            tileA.Move(posA.x, posA.y, destB);
-            tileB.Move(posB.x, posB.y, destA);
-            board[(posA.x, posA.y)] = tileA;
-            board[(posB.x, posB.y)] = tileB;
+            blockA.Move(posA.x, posA.y, destB);
+            blockB.Move(posB.x, posB.y, destA);
+            board[(posA.x, posA.y)] = blockA;
+            board[(posB.x, posB.y)] = blockB;
 
             yield return new WaitForSeconds(0.2f);
             isMoving = false;
@@ -227,45 +227,45 @@ public class Board : MonoBehaviour
     }
 
     // 매치된 타일 찾기
-    private List<Tile> FindMatches()
+    private List<Block> FindMatches()
     {
-        var matched = new HashSet<Tile>();
+        var matched = new HashSet<Block>();
         var dirs = new (int, int)[] { Directions[(int)Dir.Up], Directions[(int)Dir.LeftUp], Directions[(int)Dir.RightUp] };
 
         foreach (var position in board)
         {
-            var tile = position.Value;
+            var block = position.Value;
 
-            var match4 = new List<Tile>() { tile };
+            var match4 = new List<Block>() { block };
 
             // 3개 이상 라인 체크
             foreach (var dir in dirs)
             {
-                var line = new List<Tile>() { tile };
+                var line = new List<Block>() { block };
                 // Up 방향
-                int dx = tile.x + dir.Item1;
-                int dy = tile.y + dir.Item2;
+                int dx = block.x + dir.Item1;
+                int dy = block.y + dir.Item2;
 
-                if (!IsLockTile(dx, dy) && IsSameTile(dx, dy, tile.type)) // 라인 체크하면서 dx, dy 값이 변경되어 4매치 먼저 체크
+                if (!IsLockBlock(dx, dy) && IsSameBlock(dx, dy, block.type)) // 라인 체크하면서 dx, dy 값이 변경되어 4매치 먼저 체크
                     match4.Add(board[(dx, dy)]);
 
-                while (board.TryGetValue((dx, dy), out var dTile) && !dTile.IsLock && dTile.type == tile.type)
+                while (board.TryGetValue((dx, dy), out var dBlock) && !dBlock.IsLock && dBlock.type == block.type)
                 { 
-                    line.Add(dTile);
+                    line.Add(dBlock);
                     dx += dir.Item1;
                     dy += dir.Item2;
                 }
 
                 // Down 방향
-                dx = tile.x - dir.Item1;
-                dy = tile.y - dir.Item2;
+                dx = block.x - dir.Item1;
+                dy = block.y - dir.Item2;
 
-                if (!IsLockTile(dx, dy) && IsSameTile(dx, dy, tile.type))
+                if (!IsLockBlock(dx, dy) && IsSameBlock(dx, dy, block.type))
                     match4.Add(board[(dx, dy)]);
 
-                while (board.TryGetValue((dx, dy), out var dTile) && !dTile.IsLock && dTile.type == tile.type)
+                while (board.TryGetValue((dx, dy), out var dBlock) && !dBlock.IsLock && dBlock.type == block.type)
                 {
-                    line.Add(dTile);
+                    line.Add(dBlock);
                     dx -= dir.Item1;
                     dy -= dir.Item2;
                 }
@@ -288,13 +288,13 @@ public class Board : MonoBehaviour
     }
 
     // 매치된 타일 제거
-    IEnumerator ClearTile(List<Tile> matches)
+    IEnumerator ClearBlock(List<Block> matches)
     {
-        HashSet<(int, int)> unlockTiles = new HashSet<(int, int)>();
+        HashSet<(int, int)> unlockBlocks = new HashSet<(int, int)>();
 
         foreach (var match in matches)
         {
-            match.ClearTile();
+            match.ClearBlock();
             board[(match.x, match.y)] = null;
 
             foreach (var dir in Define.Directions)
@@ -303,47 +303,47 @@ public class Board : MonoBehaviour
                 var x = match.x + dx;
                 var y = match.y + dy;
 
-                if (IsLockTile(x, y))
-                    unlockTiles.Add((x, y));
+                if (IsLockBlock(x, y))
+                    unlockBlocks.Add((x, y));
             }
         }
 
-        foreach (var pos in unlockTiles)
+        foreach (var pos in unlockBlocks)
         {
             var (x, y) = pos;
-            var tile = board[(x, y)];
-            tile.UnlockTopSpin();
+            var block = board[(x, y)];
+            block.UnlockTopSpin();
         }
 
         yield return new WaitForSeconds(0.5f);
 
         foreach (var match in matches)
         {
-            GameObject.DestroyImmediate(match.TileObject);
+            GameObject.DestroyImmediate(match.BlockObject);
         }
 
-        StartCoroutine(FillTile());
+        StartCoroutine(FillBlock());
     }
 
     // 빈 타일 채우기
-    IEnumerator FillTile()
+    IEnumerator FillBlock()
     {
-        var emptyTiles = board.Where(_ => _.Value == null).OrderBy(_ => _.Key.Item1).ThenByDescending(_ => _.Key.Item2).ToList();
+        var emptyBlocks = board.Where(_ => _.Value == null).OrderBy(_ => _.Key.Item1).ThenByDescending(_ => _.Key.Item2).ToList();
 
         bool isAddEmpty = false;
 
-        while (emptyTiles.Count > 0)
+        while (emptyBlocks.Count > 0)
         {
             isAddEmpty = false;
-            foreach (var emptyTile in emptyTiles)
+            foreach (var emptyBlock in emptyBlocks)
             {
-                var (x, y) = emptyTile.Key;
+                var (x, y) = emptyBlock.Key;
                 var (dX, dY) = Define.Directions[(int)Dir.Up];
-                if (board.TryGetValue((x + dX, y + dY), out var upTile) && upTile != null)
+                if (board.TryGetValue((x + dX, y + dY), out var upBlock) && upBlock != null)
                 {
-                    var destPos = TileToWorld(x, y);
-                    upTile.Move(x, y, destPos);
-                    board[(x, y)] = upTile;
+                    var destPos = BlockToWorld(x, y);
+                    upBlock.Move(x, y, destPos);
+                    board[(x, y)] = upBlock;
                     board[(x + dX, y + dY)] = null;
                     isAddEmpty = true;
                 }
@@ -354,7 +354,7 @@ public class Board : MonoBehaviour
                     {
                         var nighborPosX = neighbor.x;
                         var nighborPosY = neighbor.y;
-                        var destPos = TileToWorld(x, y);
+                        var destPos = BlockToWorld(x, y);
                         neighbor.Move(x, y, destPos);
                         board[(x, y)] = neighbor;
                         board[(nighborPosX, nighborPosY)] = null;
@@ -365,15 +365,15 @@ public class Board : MonoBehaviour
 
             if (isAddEmpty)
             {
-                SpawnTile();
+                SpawnBlock();
                 yield return new WaitForSeconds(0.2f);
             }
             else
             {
-                emptyTiles = board.Where(_ => _.Value == null).OrderBy(_ => _.Key.Item1).ThenByDescending(_ => _.Key.Item2).ToList();
-                if (emptyTiles.Count > 0)
+                emptyBlocks = board.Where(_ => _.Value == null).OrderBy(_ => _.Key.Item1).ThenByDescending(_ => _.Key.Item2).ToList();
+                if (emptyBlocks.Count > 0)
                 {
-                    SpawnTile();
+                    SpawnBlock();
                     yield return new WaitForSeconds(0.2f);
                 }
                 else
@@ -382,22 +382,22 @@ public class Board : MonoBehaviour
                 }
             }
 
-            emptyTiles = board.Where(_ => _.Value == null).OrderBy(_ => _.Key.Item1).ThenByDescending(_ => _.Key.Item2).ToList();
+            emptyBlocks = board.Where(_ => _.Value == null).OrderBy(_ => _.Key.Item1).ThenByDescending(_ => _.Key.Item2).ToList();
         }
 
         ChainReaction();
     }
 
     // 빈 타일의 이웃 타일 중에서 굴러올 수 있는 타일 반환
-    public Tile GetNeighbor(int x, int y)
+    public Block GetNeighbor(int x, int y)
     {
         var (upX, upY) = Define.Directions[(int)Dir.Up];
 
         var (dx, dy) = Define.Directions[(int)Dir.LeftUp];
         // 왼쪽 위에 타일 위에 타일이 없으면 굴러오도록 함.
-        if (!IsEmptyTile(x + dx, y + dy))
+        if (!IsEmptyBlock(x + dx, y + dy))
         {
-            if (IsEmptyTile(x + dx + upX, y + dy + upY))
+            if (IsEmptyBlock(x + dx + upX, y + dy + upY))
             {
                 return board[(x + dx, y + dy)];
             }
@@ -405,9 +405,9 @@ public class Board : MonoBehaviour
 
         (dx, dy) = Define.Directions[(int)Dir.RightUp];
         // 오른쪽 위도 체크
-        if (!IsEmptyTile(x + dx, y + dy))
+        if (!IsEmptyBlock(x + dx, y + dy))
         {
-            if (IsEmptyTile(x + dx + upX, y + dy + upY))
+            if (IsEmptyBlock(x + dx + upX, y + dy + upY))
             {
                 return board[(x + dx, y + dy)];
             }
@@ -417,28 +417,28 @@ public class Board : MonoBehaviour
     }
 
     // 새 타일 스폰
-    public void SpawnTile()
+    public void SpawnBlock()
     {
         var (x, y) = spwanPoint;
 
         if (board[(x, y - 1)] != null)
         {
-            Debug.Log("Spawn Tile Failed!");
+            Debug.Log("Spawn Block Failed!");
             return;
         }
 
-        var type = GetRandomTileType();
-        Vector3 pos = TileToWorld(x, y);
-        var tileObject = Instantiate(goTile, pos, Quaternion.identity, trTile);
-        tileObject.name = $"Tile_{x}_{y}";
+        var type = GetRandomBlockType();
+        Vector3 pos = BlockToWorld(x, y);
+        var blockObject = Instantiate(goBlock, pos, Quaternion.identity, trBlock);
+        blockObject.name = $"Block_{x}_{y}";
 
-        var tile = tileObject.GetComponent<Tile>();
-        tile.Set(x, y, type, tileObject);
+        var block = blockObject.GetComponent<Block>();
+        block.Set(x, y, type, blockObject);
 
-        var destPos = TileToWorld(x, y - 1);
-        tile.Move(x, y - 1, destPos);
+        var destPos = BlockToWorld(x, y - 1);
+        block.Move(x, y - 1, destPos);
 
-        board[(x, y - 1)] = tile;
+        board[(x, y - 1)] = block;
     }
 
     public void ChainReaction()
@@ -447,7 +447,7 @@ public class Board : MonoBehaviour
         if (matches.Count > 0)
         {
             Debug.Log($"Chain Reaction Match !! {matches.Count}");
-            StartCoroutine(ClearTile(matches));
+            StartCoroutine(ClearBlock(matches));
         }
         else
         {

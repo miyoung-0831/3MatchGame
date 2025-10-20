@@ -11,7 +11,7 @@ public class LevelData : ScriptableObject
     [Serializable]
     public class Row
     {
-        public List<TileType> tiles;
+        public List<BlockType> blocks;
     }
 
     [SerializeField] public List<Row> rows;
@@ -19,15 +19,15 @@ public class LevelData : ScriptableObject
 
     //TODO : 컬럼수 체크해서 에러 나오도록하는게 좋을 듯 n * m 으로 데이터가 만들어지도록
 
-    public Dictionary<(int, int), TileType> GetData()
+    public Dictionary<(int, int), BlockType> GetData()
     {
-        var data = new Dictionary<(int, int), TileType>();
+        var data = new Dictionary<(int, int), BlockType>();
 
         for (var i = 0; i < rows.Count; i++)
         {
-            for (var j = 0; j < rows[i].tiles.Count; j++)
+            for (var j = 0; j < rows[i].blocks.Count; j++)
             {
-                data[(j, i)] = rows[i].tiles[j];
+                data[(j, i)] = rows[i].blocks[j];
             }
         }
 
