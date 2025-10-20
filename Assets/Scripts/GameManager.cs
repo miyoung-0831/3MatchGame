@@ -106,9 +106,12 @@ public class GameManager : MonoBehaviour
     }
 
     // Swap이 끝났을 때 호출되는 콜백 함수
-    public void OnEndSwap()
+    public void OnEndSwap(bool isShuffle)
     {
         StartHintTitmer();
+
+        if (isShuffle)
+            uiGame.ShowShuffle();
     }
 
     private void StartHintTitmer()

@@ -1,7 +1,9 @@
 ﻿using System;
-using UnityEngine;
 using System.Collections;
-
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using UnityEngine;
 using BlockType = Define.BlockType;
 
 [Serializable]
@@ -18,7 +20,6 @@ public class Block : MonoBehaviour
     [SerializeField] private Material particleMat;
 
     private float elapsedTime = 0;
-    private float movingTime = Define.BlockMoveTime;
 
     public GameObject BlockObject => objBlock;
     private GameObject objBlock = null;
@@ -28,6 +29,9 @@ public class Block : MonoBehaviour
 
     public bool IsLock => isLock;
     private bool isLock = false;
+
+    private List<Vector3> destPositions = new List<Vector3>();
+    private int moveIndex = 0; // 이동 중에 여러번 이동 명령이 들어올 때 순서대로 처리하기 위한 인덱스
 
     public Block(int x, int y, BlockType type)
     {
@@ -56,6 +60,12 @@ public class Block : MonoBehaviour
         //isSelectBlock = false;
     }
 
+    public void ChangeBlockColor(BlockType newType)
+    {
+        type = newType;
+        spriteRenderer.sprite = ResourceManager.Instance.GetSprite(type.GetImage());
+    }
+
     private void OnDisable()
     {
         ResetBlock();
@@ -66,7 +76,6 @@ public class Block : MonoBehaviour
     {
         isLock = false;
         elapsedTime = 0;
-        movingTime = Define.BlockMoveTime;
         isMoving = false;
         objBlock = null;
 
@@ -99,29 +108,40 @@ public class Block : MonoBehaviour
         if (!isMoving)
         {
             elapsedTime = 0;
-            movingTime = Define.BlockMoveTime;
+            moveIndex = 0;
         }
-        else
-            movingTime += Define.BlockMoveTime; // 우선 이동중이면 시간 누적
 
-        coMove = StartCoroutine(MoveCoroutine(dest, movingTime));
+        if (destPositions == null)
+            destPositions = new List<Vector3>();
+        destPositions.Add(dest);
+
+        coMove = StartCoroutine(MoveCoroutine());
     }
 
-    private IEnumerator MoveCoroutine(Vector3 dest, float time)
+    private IEnumerator MoveCoroutine()
     {
         isMoving = true;
         Vector3 startPos = transform.position;
 
-        while (elapsedTime <= time)
+        while (elapsedTime < Define.BlockMoveTime && moveIndex < destPositions.Count)
         {
             elapsedTime += Time.deltaTime;
-            transform.position = Vector3.Lerp(startPos, dest, elapsedTime / time);
+            transform.position = Vector3.Lerp(startPos, destPositions[moveIndex], elapsedTime / Define.BlockMoveTime);
+
+            if (Vector3.Distance(this.transform.position, destPositions[moveIndex]) < 0.01f && moveIndex < destPositions.Count - 1)
+            {
+                moveIndex++;
+                elapsedTime = 0;
+                startPos = this.transform.position;
+            }
+
             yield return null;
         }
 
-        transform.position = dest;
+        transform.position = destPositions.Last();
         coMove = null;
         isMoving = false;
+        destPositions.Clear();
     }
 
     // 팽이 잠금 해제 (팽이 돌아가는 애니메이션 재생)

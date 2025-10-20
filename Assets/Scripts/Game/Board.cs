@@ -4,9 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.Tilemaps;
 using static Define;
-using static Unity.Collections.AllocatorManager;
 
 public class Board : MonoBehaviour
 {
@@ -39,7 +37,7 @@ public class Board : MonoBehaviour
     private bool isMoving = false;
 
     public System.Action<List<Block>> OnClearBlock = null;
-    public System.Action OnEndSwap = null;
+    public System.Action<bool> OnEndSwap = null;
 
     public void OnGenerateBoard()
     {
@@ -116,9 +114,7 @@ public class Board : MonoBehaviour
         foreach (var (x, y) in keys)
         {
             BlockType type;
-
             int safety = 0;
-
             do
             {
                 type = GetRandomBlockType();
@@ -185,12 +181,17 @@ public class Board : MonoBehaviour
         return true;
     }
 
-    private bool IsLockBlock(int x, int y)
+    private bool IsTopSpin(int x, int y)
     {
         if (IsEmptyBlock(x, y))
             return false;
 
-        return board[(x, y)].IsLock;
+        return board[(x, y)].type == BlockType.TopSpin;
+    }
+
+    private bool IsTopSpin(Block block)
+    {
+        return block.type == BlockType.TopSpin;
     }
 
     // 블록 스왑
@@ -234,7 +235,7 @@ public class Board : MonoBehaviour
             yield return new WaitForSeconds(Define.BlockMoveTime);
 
             isMoving = false;
-            OnEndSwap?.Invoke();
+            OnEndSwap?.Invoke(false);
         }
     }
 
@@ -247,6 +248,9 @@ public class Board : MonoBehaviour
         foreach (var position in board)
         {
             var block = position.Value;
+            if (block.type == BlockType.TopSpin)
+                continue;
+
             var matcheBlocks = FindMatch(block);
 
             matched.AddRange(matcheBlocks);
@@ -261,7 +265,7 @@ public class Board : MonoBehaviour
         var matched = new HashSet<Block>();
 
         var dirs = new (int, int)[] { Directions[(int)Dir.Up], Directions[(int)Dir.LeftUp], Directions[(int)Dir.RightUp] };
-        var match4 = new List<Block>();
+        var match4 = new List<Block>() { block };
 
         foreach (var dir in dirs)
         {
@@ -270,10 +274,10 @@ public class Board : MonoBehaviour
             int dx = block.x + dir.Item1;
             int dy = block.y + dir.Item2;
 
-            if (!IsLockBlock(dx, dy) && IsSameBlock(dx, dy, block.type)) // 라인 체크하면서 dx, dy 값이 변경되어 4매치 먼저 체크
+            if (IsSameBlock(dx, dy, block.type)) // 라인 체크하면서 dx, dy 값이 변경되어 4매치 먼저 체크
                 match4.Add(board[(dx, dy)]);
 
-            while (board.TryGetValue((dx, dy), out var dBlock) && !dBlock.IsLock && dBlock.type == block.type)
+            while (board.TryGetValue((dx, dy), out var dBlock) && dBlock.type == block.type)
             {
                 line.Add(dBlock);
                 dx += dir.Item1;
@@ -284,10 +288,10 @@ public class Board : MonoBehaviour
             dx = block.x - dir.Item1;
             dy = block.y - dir.Item2;
 
-            if (!IsLockBlock(dx, dy) && IsSameBlock(dx, dy, block.type))
+            if (IsSameBlock(dx, dy, block.type))
                 match4.Add(board[(dx, dy)]);
 
-            while (board.TryGetValue((dx, dy), out var dBlock) && !dBlock.IsLock && dBlock.type == block.type)
+            while (board.TryGetValue((dx, dy), out var dBlock) && dBlock.type == block.type)
             {
                 line.Add(dBlock);
                 dx -= dir.Item1;
@@ -313,7 +317,8 @@ public class Board : MonoBehaviour
     // 매치된 블록 제거
     IEnumerator ClearBlock(List<Block> matches)
     {
-        HashSet<(int, int)> unlockBlocks = new HashSet<(int, int)>();
+        HashSet<(int, int)> unlockBlocks = null;
+        HashSet<Block> topspinBlocks = null;
 
         foreach (var match in matches)
         {
@@ -324,17 +329,40 @@ public class Board : MonoBehaviour
                 var x = match.x + dx;
                 var y = match.y + dy;
 
-                if (IsLockBlock(x, y))
-                    unlockBlocks.Add((x, y));
+                if (IsTopSpin(x, y))
+                {
+                    if (board[(x, y)].IsLock)
+                    {
+                        if (unlockBlocks == null)
+                            unlockBlocks = new HashSet<(int, int)>();
+                        unlockBlocks.Add((x, y));
+                    }
+                    else
+                    {
+                        if (topspinBlocks == null)
+                            topspinBlocks = new HashSet<Block>();
+                        
+                        // 이미 팽이가 추가 된 경우 제외
+                        if (topspinBlocks.Add(board[(x, y)]))
+                            board[(x, y)].ClearBlock();
+                    }
+                }
             }
         }
 
-        foreach (var pos in unlockBlocks)
+        // 팽이를 돌리자
+        if (unlockBlocks != null)
         {
-            var (x, y) = pos;
-            var block = board[(x, y)];
-            block.UnlockTopSpin();
+            foreach (var pos in unlockBlocks)
+            {
+                var (x, y) = pos;
+                var block = board[(x, y)];
+                block.UnlockTopSpin();
+            }
         }
+
+        if (topspinBlocks != null)
+            matches.AddRange(topspinBlocks);
 
         OnClearBlock?.Invoke(matches);
 
@@ -447,7 +475,7 @@ public class Board : MonoBehaviour
 
         if (board[(x, y - 1)] != null)
         {
-            Debug.Log("Spawn Block Failed!");
+            //Debug.Log("Spawn Block Failed!");
             return;
         }
 
@@ -470,13 +498,44 @@ public class Board : MonoBehaviour
         }
         else
         {
+            var matchCount = FindMatchBlock().Count;
+            bool isShuffled = false;
+            while (matchCount == 0)
+            {
+                Shuffle();
+                matchCount = FindMatchBlock().Count;
+                isShuffled = true;
+            }
+
             isMoving = false;
-            OnEndSwap?.Invoke();
+            OnEndSwap?.Invoke(isShuffled);
         }
     }
 
+    private void Shuffle()
+    {
+        var blocks = board.Values.Where(_ => _ != null && _.type != BlockType.TopSpin).ToList();
+        var types = blocks.Select(_ => _.type).ToList();
+
+        // 블록 타입 섞기
+        var rand = new System.Random();
+        types = types.OrderBy(_ => rand.Next()).ToList();
+
+        // 섞인 타입으로 블록 변경
+        for (var i = 0; i < blocks.Count; i++)
+        {
+            blocks[i].ChangeBlockColor(types[i]);
+        }
+    }
+
+
     #region Hint
     public List<Block> FindHint()
+    {
+        return FindMatchBlock();
+    }
+
+    private List<Block> FindMatchBlock()
     {
         List<Block> result = new List<Block>();
 
@@ -488,6 +547,9 @@ public class Board : MonoBehaviour
                     continue;
 
                 var currentBlock = board[(x, y)];
+                if (currentBlock.type == BlockType.TopSpin)
+                    continue;
+
                 foreach (var (dx, dy) in Define.Directions)
                 {
                     int nX = currentBlock.x + dx;
@@ -495,7 +557,7 @@ public class Board : MonoBehaviour
 
                     if (!board.ContainsKey((nX, nY)))
                         continue;
-                    
+
                     var neighborBlock = board[(nX, nY)];
                     if (neighborBlock.type == currentBlock.type)
                         continue;
