@@ -29,6 +29,8 @@ public class Board : MonoBehaviour
     public bool IsMoving => isMoving;
     private bool isMoving = false;
 
+    public System.Action<List<Block>> OnClearBlock = null;
+
     public void OnGenerateBoard()
     {
         board.Clear();
@@ -203,7 +205,7 @@ public class Board : MonoBehaviour
         board[(posA.x, posA.y)] = blockB;
         board[(posB.x, posB.y)] = blockA;
 
-        yield return new WaitForSeconds(0.2f);
+        yield return new WaitForSeconds(Define.BlockMoveTime);
 
         var matches = FindMatches();
         if (matches.Count > 0)
@@ -220,7 +222,7 @@ public class Board : MonoBehaviour
             board[(posA.x, posA.y)] = blockA;
             board[(posB.x, posB.y)] = blockB;
 
-            yield return new WaitForSeconds(0.2f);
+            yield return new WaitForSeconds(Define.BlockMoveTime);
             isMoving = false;
         }
     }
@@ -314,7 +316,9 @@ public class Board : MonoBehaviour
             block.UnlockTopSpin();
         }
 
-        yield return new WaitForSeconds(0.5f);
+        OnClearBlock?.Invoke(matches);
+
+        yield return new WaitForSeconds(Define.ClearBlockDelayTime);
 
         foreach (var match in matches)
         {
@@ -365,7 +369,7 @@ public class Board : MonoBehaviour
             if (isAddEmpty)
             {
                 SpawnBlock();
-                yield return new WaitForSeconds(0.2f);
+                yield return new WaitForSeconds(Define.BlockMoveTime);
             }
             else
             {
@@ -373,7 +377,7 @@ public class Board : MonoBehaviour
                 if (emptyBlocks.Count > 0)
                 {
                     SpawnBlock();
-                    yield return new WaitForSeconds(0.2f);
+                    yield return new WaitForSeconds(Define.BlockMoveTime);
                 }
                 else
                 {

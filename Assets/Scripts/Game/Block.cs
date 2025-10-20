@@ -2,7 +2,7 @@
 using UnityEngine;
 using System.Collections;
 
-using static Define;
+using BlockType = Define.BlockType;
 
 [Serializable]
 public class Block : MonoBehaviour
@@ -18,7 +18,7 @@ public class Block : MonoBehaviour
     [SerializeField] private Material particleMat;
 
     private float elapsedTime = 0;
-    private float movingTime = 0.2f;
+    private float movingTime = Define.BlockMoveTime;
 
     public GameObject BlockObject => objBlock;
     private GameObject objBlock = null;
@@ -68,7 +68,7 @@ public class Block : MonoBehaviour
     {
         isLock = false;
         elapsedTime = 0;
-        movingTime = 0.2f;
+        movingTime = Define.BlockMoveTime;
         isMoving = false;
         objBlock = null;
 
@@ -101,10 +101,10 @@ public class Block : MonoBehaviour
         if (!isMoving)
         {
             elapsedTime = 0;
-            movingTime = 0.2f;
+            movingTime = Define.BlockMoveTime;
         }
         else
-            movingTime += 0.2f; // 우선 이동중이면 시간 누적
+            movingTime += Define.BlockMoveTime; // 우선 이동중이면 시간 누적
 
         coMove = StartCoroutine(MoveCoroutine(dest, movingTime));
     }

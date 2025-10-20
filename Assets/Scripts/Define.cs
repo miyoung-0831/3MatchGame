@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-public class Define
+public static class Define
 {
     public enum BlockType
     {
@@ -43,4 +43,10 @@ public class Define
         (-1, 1),
         (1, -1),
     };
+
+    public static float BlockMoveTime = 0.2f;
+    public static float ClearBlockDelayTime = 0.3f;
+
+    public static int NormalBlockScore = 20;
+    public static int TopSpinBlockScore = 500;
 }
