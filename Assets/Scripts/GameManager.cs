@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using UnityEngine;
+using static Unity.Collections.AllocatorManager;
 
 public class GameManager : MonoBehaviour
 {
@@ -76,19 +77,10 @@ public class GameManager : MonoBehaviour
         if (board.IsMoving)
             return;
 
-        // 인접 블록이 아니면 한칸만 이동
-        Vector2 dir = new Vector2(Mathf.Abs(block.x - selectBlock.x), Mathf.Abs(block.y - selectBlock.y));
-        if (dir.x > 1 || dir.y > 1)
-        {
-            dir = new Vector2(block.x - selectBlock.x, block.y - selectBlock.y);
-            dir.x = dir.x == 0 ? 0 : dir.x / Mathf.Abs(dir.x);
-            dir.y = dir.y == 0 ? 0 : dir.y / Mathf.Abs(dir.y);
+        //block = board.GetBlock(3, 4);
+        //selectBlock = board.GetBlock(2, 3);
 
-            block = board.GetBlock(selectBlock.x + (int)dir.x, selectBlock.y + (int)dir.y);
-
-            if (block == null)
-                return;
-        }
+        block = CheckSwapBlock(selectBlock, block);
 
         if (hintCoroutine != null)
         {
@@ -105,6 +97,31 @@ public class GameManager : MonoBehaviour
         swapCount++;
 
         uiGame.UpdateCount(swapCount);
+    }
+
+    // 스왑하려는 블록이 유효한지 검사하고 아니면 유효한 블록을 전달한다.
+    private Block CheckSwapBlock(Block blockA, Block blockB)
+    {
+        // 인접 블록이 아니면 한칸만 이동
+        Vector2 dir = new Vector2(Mathf.Abs(blockB.x - blockA.x), Mathf.Abs(blockB.y - blockA.y));
+        Debug.Log($"Dir: {dir}");
+        if (dir.x > 1 || dir.y > 1)
+        {
+            dir = new Vector2(blockB.x - blockA.x, blockB.y - blockA.y);
+            dir.x = dir.x == 0 ? 0 : dir.x / Mathf.Abs(dir.x);
+            dir.y = dir.y == 0 ? 0 : dir.y / Mathf.Abs(dir.y);
+
+            return board.GetBlock(blockA.x + (int)dir.x, blockA.y + (int)dir.y);
+        }
+
+        // (1, 1) 또는 (-1,-1) 방향으로 스왑 시 대각선 블록이 아닌 인접 블록으로 스왑
+        dir = new Vector2(blockB.x - blockA.x, blockB.y - blockA.y);
+        if (dir.x == 1 && dir.y == 1)
+            return board.GetBlock(blockA.x, blockA.y + 1);
+        else if (dir.x == -1 && dir.y == -1)
+            return board.GetBlock(blockA.x - 1, blockA.y);
+
+        return blockB;
     }
 
     // 블록이 제거되었을 때 호출되는 콜백 함수
